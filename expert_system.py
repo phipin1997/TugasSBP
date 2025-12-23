@@ -55,9 +55,9 @@ def view_rules():
         table.append([
             i,
             r["minat"],
-            r["ipa"],
-            r["mtk"],
-            r["fisika"],
+            f">{r["ipa"]}",
+            f">{r["mtk"]}",
+            f">{r["fisika"]}",
             r["then"]
         ])
 
