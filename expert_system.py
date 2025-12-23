@@ -36,7 +36,9 @@ def view_rules():
             if k == "minat":
                 syarat_str += f"Minat: {v}\n"
             else:
-                syarat_str += f"{k.capitalize()} >= {v}\n"
+                # Mempercantik tampilan nama mata pelajaran
+                nama_mapel = k.replace("_", " ").title()
+                syarat_str += f"{nama_mapel} >= {v}\n"
         
         table.append([i, r["jurusan"], syarat_str.strip()])
 
@@ -51,9 +53,10 @@ def add_rule():
     print("--- Masukkan Syarat (Tekan Enter jika kosong) ---")
     syarat = {}
     
-    minat = input("Minat Spesifik (komputer/teknik/manajemen): ").lower()
+    minat = input("Minat Spesifik (contoh: komputer/teknik/kesehatan): ").lower()
     if minat: syarat["minat"] = minat
         
+    # Helper function untuk input nilai
     def input_syarat_nilai(label, key):
         while True:
             val = input(f"Minimal Nilai {label}: ")
@@ -65,14 +68,21 @@ def add_rule():
             except ValueError:
                 print("❌ Harus angka!")
 
-    mtk = input_syarat_nilai("Matematika", "mtk")
-    if mtk is not None: syarat["mtk"] = mtk
-    
-    ing = input_syarat_nilai("B.Inggris", "b_inggris")
-    if ing is not None: syarat["b_inggris"] = ing
-    
-    fis = input_syarat_nilai("Fisika", "fisika")
-    if fis is not None: syarat["fisika"] = fis
+    # Daftar Mapel yang bisa dijadikan syarat
+    mapel_list = [
+        ("Matematika", "mtk"),
+        ("B.Inggris", "b_inggris"),
+        ("B.Indonesia", "b_indonesia"),
+        ("Fisika", "fisika"),
+        ("Kimia", "kimia"),
+        ("Biologi", "biologi"),
+        ("Ekonomi", "ekonomi")
+    ]
+
+    for label, key in mapel_list:
+        nilai = input_syarat_nilai(label, key)
+        if nilai is not None:
+            syarat[key] = nilai
 
     rules = load_rules()
     rules.append({"jurusan": jurusan, "syarat": syarat})
@@ -89,9 +99,9 @@ def delete_rule():
     try:
         idx = int(input("\nHapus Nomor: ")) - 1
         if 0 <= idx < len(rules):
-            rules.pop(idx)
+            deleted = rules.pop(idx)
             save_rules(rules)
-            print("✔ Terhapus.")
+            print(f"✔ Rule '{deleted['jurusan']}' terhapus.")
         else: print("❌ Tidak valid.")
     except ValueError: print("❌ Harus angka.")
 
@@ -99,7 +109,7 @@ def delete_rule():
 # 5. Fitur Update Rule
 # ===========================
 def update_rule():
-    view_rules()
+    view_rules() # Tampilkan dulu biar user tau nomornya
     rules = load_rules()
     if not rules: return
     try:
@@ -114,25 +124,25 @@ def update_rule():
         
         ubah_syarat = input("Ubah syarat? (y/n): ").lower()
         if ubah_syarat == 'y':
-            # Logic update sederhana, reset syarat lama biar bersih
-            print("Silakan input syarat baru:")
+            print("Silakan input syarat baru (kosongkan jika tidak perlu):")
             syarat = {}
             minat = input("Minat: ").lower()
             if minat: syarat["minat"] = minat
             
-            # Re-use logic input manual agar cepat (bisa dikembangkan lagi)
-            mtk = input("Min MTK: ")
-            if mtk: syarat["mtk"] = int(mtk)
-            ing = input("Min B.Inggris: ")
-            if ing: syarat["b_inggris"] = int(ing)
-            fis = input("Min Fisika: ")
-            if fis: syarat["fisika"] = int(fis)
+            # Input ulang nilai-nilai
+            mapel_list = [("Matematika", "mtk"), ("B.Inggris", "b_inggris"), 
+                          ("B.Indonesia", "b_indonesia"), ("Fisika", "fisika"), 
+                          ("Kimia", "kimia"), ("Biologi", "biologi"), ("Ekonomi", "ekonomi")]
+            
+            for label, key in mapel_list:
+                val = input(f"Min {label}: ")
+                if val: syarat[key] = int(val)
             
             r['syarat'] = syarat
 
         save_rules(rules)
         print("✔ Update sukses.")
-    except ValueError: print("❌ Error.")
+    except ValueError: print("❌ Error input.")
 
 # ===========================
 # 6. CORE ENGINE: Forward Chaining
@@ -144,21 +154,36 @@ def forward_chaining():
     
     nama = input("Nama Siswa: ")
     
-    # --- VALIDASI INPUT NILAI (ANTI DOSEN ISENG) ---
-    def get_valid_score(mapel):
+    # --- VALIDASI INPUT NILAI ---
+    def get_valid_score(label):
         while True:
             try:
-                val = int(input(f"Nilai {mapel}: "))
-                if 0 <= val <= 100: return val
-                print("⚠️ Nilai tidak masuk akal (harus 0-100).")
+                val = input(f"Nilai {label}: ")
+                # Jika user kosongkan (Enter), anggap 0 (User tidak ambil mapel itu/Anak IPS/IPA)
+                if not val: return 0 
+                angka = int(val)
+                if 0 <= angka <= 100: return angka
+                print("⚠️ Nilai harus 0-100.")
             except ValueError:
                 print("❌ Input harus angka.")
 
     user_data = {}
-    user_data["minat"] = input("Minat (komputer/teknik/manajemen): ").lower()
+    print("\n--- Masukkan Minat & Nilai Rapor ---")
+    print("(Tips: Ketik salah satu: komputer, manajemen, teknik, kesehatan, eksperimen, hitungan, bahasa)")
+    user_data["minat"] = input("Minat Dominan: ").lower()
+    
+    # Meminta input semua mata pelajaran yang ada di Rule
     user_data["mtk"] = get_valid_score("Matematika")
     user_data["b_inggris"] = get_valid_score("Bahasa Inggris")
+    user_data["b_indonesia"] = get_valid_score("Bahasa Indonesia")
+    
+    print("\n-- Kelompok IPA --")
     user_data["fisika"] = get_valid_score("Fisika")
+    user_data["kimia"] = get_valid_score("Kimia")
+    user_data["biologi"] = get_valid_score("Biologi")
+    
+    print("\n-- Kelompok IPS --")
+    user_data["ekonomi"] = get_valid_score("Ekonomi")
 
     print("\nSedang menganalisis...")
     rules = load_rules()
@@ -168,19 +193,22 @@ def forward_chaining():
     for rule in rules:
         syarat = rule["syarat"]
         match = True
-        alasan = [] # Menyimpan alasan kenapa cocok
+        alasan = [] 
         
         for kriteria, butuh in syarat.items():
-            punya = user_data.get(kriteria)
+            punya = user_data.get(kriteria, 0) # Default 0 jika data tidak ada
             
             if kriteria == "minat":
-                if punya != butuh:
+                # Partial match: misal syarat 'komputer', user ketik 'suka komputer' -> Tetap Match
+                if butuh not in punya: 
                     match = False; break
                 alasan.append(f"Minat sesuai ({butuh})")
             else: # Nilai Angka
                 if punya < butuh:
                     match = False; break
-                alasan.append(f"Nilai {kriteria.upper()} {punya} (Min: {butuh})")
+                # Format nama mapel biar bagus
+                nama_mapel = kriteria.replace("_", " ").title()
+                alasan.append(f"{nama_mapel}: {punya} (Min: {butuh})")
         
         if match:
             rekomendasi.append({
@@ -191,20 +219,21 @@ def forward_chaining():
     # Output & Laporan
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
-    print(f"\n=== HASIL ANALISIS: {nama.upper()} ===")
+    print(f"\n=== HASIL REKOMENDASI: {nama.upper()} ===")
     if rekomendasi:
-        print(f"Berdasarkan analisis pada {timestamp}:")
+        print(f"Berdasarkan analisis sistem:")
         for rek in rekomendasi:
             print(f"\n✅ {rek['jurusan']}")
-            print(f"   Alasan: {rek['detail']}")
+            print(f"   Alasan Kuat: {rek['detail']}")
         
-        # Simpan ke File (Bukti Fisik)
+        # Simpan ke File
         with open("hasil_konsultasi.txt", "a") as f:
-            f.write(f"\n[{timestamp}] {nama}: {', '.join([r['jurusan'] for r in rekomendasi])}")
-            print("\n(Hasil telah disimpan ke hasil_konsultasi.txt)")
+            jurusan_str = ", ".join([r['jurusan'] for r in rekomendasi])
+            f.write(f"[{timestamp}] {nama}: {jurusan_str}\n")
+            print("\n(Data tersimpan di hasil_konsultasi.txt)")
     else:
-        print("⚠️ Mohon maaf, kualifikasi belum memenuhi syarat jurusan manapun.")
-        print("Saran: Coba tingkatkan nilai akademik atau eksplorasi minat lain.")
+        print("⚠️ Tidak ada jurusan yang cocok.")
+        print("Saran: Coba cek kembali input nilai atau minat Anda.")
 
 # ===========================
 # MAIN MENU
@@ -212,8 +241,8 @@ def forward_chaining():
 def main_menu():
     while True:
         print("\n[ MENU UTAMA ]")
-        print("1. Konsultasi")
-        print("2. Database Rules")
+        print("1. Konsultasi Siswa")
+        print("2. Lihat Knowledge Base")
         print("3. Tambah Rule")
         print("4. Update Rule")
         print("5. Hapus Rule")
