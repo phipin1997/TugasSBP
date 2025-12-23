@@ -2,33 +2,59 @@
     {
         "jurusan": "Teknik Informatika",
         "syarat": {
-            "minat": "komputer",
             "mtk": 80,
-            "b_inggris": 75
+            "b_inggris": 70,
+            "minat": "komputer"
         }
     },
     {
         "jurusan": "Sistem Informasi",
         "syarat": {
-            "minat": "komputer",
-            "mtk": 75,
-            "b_inggris": 70
+            "mtk": 70,
+            "b_inggris": 70,
+            "minat": "manajemen"
         }
     },
     {
-        "jurusan": "Teknik Industri",
+        "jurusan": "Teknik Mesin / Elektro",
         "syarat": {
-            "minat": "manajemen",
-            "mtk": 75,
-            "fisika": 70
+            "fisika": 80,
+            "mtk": 70,
+            "minat": "teknik"
         }
     },
     {
-        "jurusan": "Teknik Mesin",
+        "jurusan": "Kedokteran",
         "syarat": {
-            "minat": "teknik",
+            "biologi": 80,
+            "kimia": 80,
+            "b_inggris": 70,
+            "minat": "kesehatan"
+        }
+    },
+    {
+        "jurusan": "Teknik Kimia",
+        "syarat": {
+            "kimia": 80,
+            "fisika": 70,
+            "mtk": 70,
+            "minat": "eksperimen"
+        }
+    },
+    {
+        "jurusan": "Akuntansi",
+        "syarat": {
             "mtk": 80,
-            "fisika": 80
+            "ekonomi": 80,
+            "minat": "hitungan"
+        }
+    },
+    {
+        "jurusan": "Sastra Inggris",
+        "syarat": {
+            "b_inggris": 80,
+            "b_indonesia": 70,
+            "minat": "bahasa"
         }
     }
 ]
