@@ -1,0 +1,30 @@
+[
+    {
+        "minat": "it",
+        "ipa": 80,
+        "mtk": 85,
+        "fisika": 70,
+        "then": "Teknik Informatika"
+    },
+    {
+        "minat": "it",
+        "ipa": 75,
+        "mtk": 75,
+        "fisika": 70,
+        "then": "Sistem Informasi"
+    },
+    {
+        "minat": "teknik",
+        "ipa": 70,
+        "mtk": 75,
+        "fisika": 85,
+        "then": "Teknik Elektro"
+    },
+    {
+        "minat": "teknik",
+        "ipa": 70,
+        "mtk": 85,
+        "fisika": 85,
+        "then": "Teknik Mesin"
+    }
+]
