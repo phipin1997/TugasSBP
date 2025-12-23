@@ -5,7 +5,7 @@ from tabulate import tabulate
 RULES_FILE = "rules.json"
 
 # ===========================
-# Load & Save Knowledge Base
+# 1. Load & Save Data
 # ===========================
 def load_rules():
     if not os.path.exists(RULES_FILE):
@@ -17,182 +17,165 @@ def save_rules(rules):
     with open(RULES_FILE, "w") as f:
         json.dump(rules, f, indent=4)
 
-
 # ===========================
-# CRUD RULES
+# 2. Fitur Tampilan (View)
 # ===========================
-def add_rule():
-    print("\n=== Tambah Rule Baru ===")
-    minat = input("Minat (IT / Teknik): ").lower()
-    ipa = int(input("Minimal Nilai IPA: "))
-    mtk = int(input("Minimal Nilai Matematika: "))
-    fisika = int(input("Minimal Nilai Fisika: "))
-    jurusan = input("Rekomendasi Jurusan: ")
-
-    rules = load_rules()
-    rules.append({
-        "minat": minat,
-        "ipa": ipa,
-        "mtk": mtk,
-        "fisika": fisika,
-        "then": jurusan
-    })
-    save_rules(rules)
-
-    print("✔ Rule berhasil ditambahkan")
-
-
 def view_rules():
     rules = load_rules()
-    print("\n=== Basis Knowledge (Rules) ===")
-
+    print("\n=== BASIS PENGETAHUAN (RULES) ===")
+    
     if not rules:
-        print("Tidak ada rule")
+        print("Belum ada rule tersimpan.")
         return
 
     table = []
     for i, r in enumerate(rules, start=1):
-        table.append([
-            i,
-            r["minat"],
-            f">{r["ipa"]}",
-            f">{r["mtk"]}",
-            f">{r["fisika"]}",
-            r["then"]
-        ])
+        # Memformat syarat agar terlihat rapi di tabel
+        syarat_str = ""
+        for k, v in r["syarat"].items():
+            if isinstance(v, str):
+                syarat_str += f"{k.capitalize()}: {v}\n"
+            else:
+                syarat_str += f"{k.capitalize()} >= {v}\n"
+        
+        table.append([i, r["jurusan"], syarat_str.strip()])
 
-    print(tabulate(
-        table,
-        headers=[
-            "No",
-            "Minat",
-            "Minimal Nilai IPA",
-            "Minimal Nilai Matematika",
-            "Minimal Nilai Fisika",
-            "Rekomendasi Jurusan"
-        ],
-        tablefmt="grid"
-    ))
-
-
-
-def update_rule():
-    rules = load_rules()
-    if not rules:
-        print("Tidak ada rule")
-        return
-
-    view_rules()
-    idx = int(input("\nPilih nomor rule: ")) - 1
-
-    if idx < 0 or idx >= len(rules):
-        print("Nomor tidak valid")
-        return
-
-    minat = input("Minat baru: ").lower()
-    ipa = int(input("Minimal Nilai IPA baru: "))
-    mtk = int(input("Minimal Nilai Matematika baru: "))
-    fisika = int(input("Minimal Nilai Fisika baru: "))
-    jurusan = input("Rekomendasi Jurusan baru: ")
-
-    rules[idx] = {
-        "minat": minat,
-        "ipa": ipa,
-        "mtk": mtk,
-        "fisika": fisika,
-        "then": jurusan
-    }
-    save_rules(rules)
-
-    print("✔ Rule berhasil diperbarui")
-
-
-def delete_rule():
-    rules = load_rules()
-    if not rules:
-        print("Tidak ada rule")
-        return
-
-    view_rules()
-    idx = int(input("\nPilih nomor rule: ")) - 1
-
-    if idx < 0 or idx >= len(rules):
-        print("Nomor tidak valid")
-        return
-
-    rules.pop(idx)
-    save_rules(rules)
-
-    print("✔ Rule berhasil dihapus")
-
+    print(tabulate(table, headers=["No", "Rekomendasi Jurusan", "Syarat Kelulusan"], tablefmt="grid"))
 
 # ===========================
-# Forward Chaining (Dominan)
+# 3. Fitur Tambah Rule (Dinamis)
+# ===========================
+def add_rule():
+    print("\n=== TAMBAH RULE BARU ===")
+    jurusan = input("Nama Jurusan: ")
+    
+    print("--- Masukkan Syarat (Tekan Enter jika tidak ingin memberi syarat pada mapel tersebut) ---")
+    
+    syarat = {}
+    
+    # Input Minat
+    minat = input("Minat Spesifik (misal: komputer/teknik/manajemen): ").lower()
+    if minat:
+        syarat["minat"] = minat
+        
+    # Input Nilai-nilai (Bisa ditambah mapel lain disini)
+    try:
+        mtk = input("Minimal Nilai Matematika: ")
+        if mtk: syarat["mtk"] = int(mtk)
+        
+        inggris = input("Minimal Nilai B.Inggris: ")
+        if inggris: syarat["b_inggris"] = int(inggris)
+        
+        fisika = input("Minimal Nilai Fisika: ")
+        if fisika: syarat["fisika"] = int(fisika)
+        
+    except ValueError:
+        print("Error: Nilai harus berupa angka!")
+        return
+
+    rules = load_rules()
+    rules.append({
+        "jurusan": jurusan,
+        "syarat": syarat
+    })
+    save_rules(rules)
+    print(f"✔ Rule untuk {jurusan} berhasil disimpan!")
+
+# ===========================
+# 4. CORE ENGINE: Forward Chaining
 # ===========================
 def forward_chaining():
-    print("\n=== Input Data Siswa ===")
-    nama = input("Nama: ")
-    minat = input("Minat (IT / Teknik): ").lower()
-    ipa = int(input("Nilai IPA: "))
-    mtk = int(input("Nilai Matematika: "))
-    fisika = int(input("Nilai Fisika: "))
+    print("\n========================================")
+    print("   SISTEM PAKAR PENENTUAN JURUSAN v2.0")
+    print("========================================")
+    
+    # --- FASE 1: PENGUMPULAN FAKTA (FACT GATHERING) ---
+    nama = input("Nama Siswa: ")
+    
+    print("\n--- Masukkan Data Akademik ---")
+    user_data = {}
+    
+    # Kita ambil semua kemungkinan input yang diperlukan
+    user_data["minat"] = input("Minat (komputer/teknik/manajemen): ").lower()
+    
+    try:
+        user_data["mtk"] = int(input("Nilai Matematika: "))
+        user_data["b_inggris"] = int(input("Nilai Bahasa Inggris: "))
+        user_data["fisika"] = int(input("Nilai Fisika: "))
+    except ValueError:
+        print("❌ Error: Input nilai harus angka!")
+        return
 
+    # --- FASE 2: INFERENCE ENGINE (PENCOCOKAN RULE) ---
+    print("\nSedang menganalisis kecocokan...")
     rules = load_rules()
-    hasil = []
+    rekomendasi = []
 
-    for r in rules:
-        if minat != r["minat"]:
-            continue
+    for rule in rules:
+        syarat_jurusan = rule["syarat"]
+        match = True # Asumsi awal cocok, kita cari celah gagalnya
+        
+        # Cek setiap syarat di dalam rule tersebut
+        for kriteria, nilai_syarat in syarat_jurusan.items():
+            
+            # Jika kriteria (misal: fisika) ada di syarat, tapi user gak punya nilainya (misal user IPS)
+            if kriteria not in user_data:
+                match = False
+                break
+            
+            nilai_user = user_data[kriteria]
+            
+            # Logika Pengecekan:
+            # 1. Jika data berupa String (Text), harus SAMA PERSIS (misal: minat)
+            if isinstance(nilai_syarat, str):
+                if nilai_user != nilai_syarat:
+                    match = False
+                    break
+            
+            # 2. Jika data berupa Angka, user harus LEBIH BESAR ATAU SAMA DENGAN syarat
+            elif isinstance(nilai_syarat, int):
+                if nilai_user < nilai_syarat:
+                    match = False
+                    break
+        
+        # Jika lolos semua cek di atas, berarti cocok
+        if match:
+            rekomendasi.append(rule["jurusan"])
 
-        # JURUSAN IT → dominan IPA & MTK
-        if r["then"] in ["Teknik Informatika", "Sistem Informasi"]:
-            if ipa >= r["ipa"] and mtk >= r["mtk"]:
-                hasil.append(r["then"])
-
-        # JURUSAN TEKNIK → dominan FISIKA & MTK
-        else:
-            if fisika >= r["fisika"] and mtk >= r["mtk"]:
-                hasil.append(r["then"])
-
-    print("\n=== Hasil Rekomendasi ===")
-    if hasil:
-        for h in hasil:
-            print(f"- {nama} direkomendasikan ke jurusan {h}")
+    # --- FASE 3: KESIMPULAN ---
+    print(f"\n=== HASIL ANALISIS UNTUK {nama.upper()} ===")
+    if rekomendasi:
+        print(f"Berdasarkan nilai dan minat, Anda disarankan masuk ke:")
+        for rek in rekomendasi:
+            print(f"⭐ {rek}")
     else:
-        print("Tidak ada jurusan yang sesuai")
-
+        print("⚠️ Tidak ada jurusan yang sesuai dengan kualifikasi saat ini.")
+        print("Saran: Tingkatkan nilai akademik atau sesuaikan minat.")
 
 # ===========================
-# Main Menu
+# MAIN MENU
 # ===========================
 def main_menu():
     while True:
-        print("\n====== SISTEM PAKAR PENENTUAN JURUSAN ======")
-        print("1. Tambah Rule")
-        print("2. Lihat Basis Knowledge")
-        print("3. Update Rule")
-        print("4. Hapus Rule")
-        print("5. Jalankan Forward Chaining")
-        print("6. Keluar")
-
-        pilih = input("Pilih menu: ")
-
+        print("\n\n[ MENU UTAMA ]")
+        print("1. Jalankan Konsultasi (Forward Chaining)")
+        print("2. Lihat Knowledge Base")
+        print("3. Tambah Rule Baru")
+        print("4. Keluar")
+        
+        pilih = input(">> Pilih: ")
+        
         if pilih == "1":
-            add_rule()
+            forward_chaining()
         elif pilih == "2":
             view_rules()
         elif pilih == "3":
-            update_rule()
+            add_rule()
         elif pilih == "4":
-            delete_rule()
-        elif pilih == "5":
-            forward_chaining()
-        elif pilih == "6":
-            print("Keluar...")
+            print("Terima kasih.")
             break
         else:
-            print("Pilihan tidak valid")
-
+            print("Pilihan salah.")
 
 if __name__ == "__main__":
     main_menu()
